@@ -5,9 +5,24 @@ on:
     paths:
       - '.github/workflows/td-version.json'
       - '.github/workflows/build-tdlib.yml'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'Which platform(s) to build'
+        required: true
+        default: linux
+        type: choice
+        options:
+          - linux
+          - android
+          - ios
+          - macos-intel
+          - windows
+          - all
 
 jobs:
   build-android:
+    if: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.target == 'android' || github.event.inputs.target == 'all') }}
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
@@ -103,6 +118,7 @@ jobs:
           artifacts: 'td/example/libs/libs.zip'
 
   build-macos-intel:
+    if: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.target == 'macos-intel' || github.event.inputs.target == 'all') }}
     runs-on: macos-11
     steps:
       - uses: actions/checkout@v2
@@ -161,6 +177,7 @@ jobs:
           artifacts: 'td/example/ios/tdjson/macOS/lib/libtdjson.zip'
 
   build-ios:
+    if: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.target == 'ios' || github.event.inputs.target == 'all') }}
     runs-on: macos-11
     steps:
       - uses: actions/checkout@v2
@@ -224,6 +241,7 @@ jobs:
           artifacts: 'td/example/ios/tdjson/iOS/lib/libtdjson.zip'
 
   build-linux-x64:
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.target == 'linux' || github.event.inputs.target == 'all')) }}
     runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
@@ -283,6 +301,7 @@ jobs:
           artifacts: 'td/tdlib/lib/libtdjson.zip'
 
   build-windows-x64:
+    if: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.target == 'windows' || github.event.inputs.target == 'all') }}
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v2
@@ -341,4 +360,3 @@ jobs:
           body: https://github.com/tdlib/td/tree/${{ env.td_commit_hash }}
           token: ${{ secrets.GITHUB_TOKEN }}
           artifacts: 'td/tdlib/bin/dlls.zip'
-
