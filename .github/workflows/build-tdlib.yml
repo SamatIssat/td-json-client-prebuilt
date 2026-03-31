@@ -242,7 +242,7 @@ jobs:
 
   build-linux-x64:
     if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.target == 'linux' || github.event.inputs.target == 'all')) }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v2
 
