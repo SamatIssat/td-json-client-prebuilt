@@ -10,7 +10,7 @@ on:
       target:
         description: 'Which platform(s) to build'
         required: true
-        default: linux
+        default: android
         type: choice
         options:
           - linux
@@ -23,7 +23,7 @@ on:
 jobs:
   build-android:
     if: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.target == 'android' || github.event.inputs.target == 'all') }}
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v2
 
@@ -35,7 +35,7 @@ jobs:
 
       - name: setup
         run: |
-          sudo apt-get install -y make git zlib1g-dev libssl-dev gperf cmake clang libc++-dev libc++abi-dev ninja-build
+          sudo apt-get install -y make git zlib1g-dev libssl-dev gperf cmake clang libc++-dev libc++abi-dev ninja-build wget unzip zip curl ca-certificates
 
       - name: download ndk
         run: |
