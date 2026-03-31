@@ -1,10 +1,6 @@
 name: tdlib-build
 
 on:
-  push:
-    paths:
-      - '.github/workflows/td-version.json'
-      - '.github/workflows/build-tdlib.yml'
   workflow_dispatch:
     inputs:
       target:
@@ -41,9 +37,10 @@ jobs:
         run: |
           mkdir /opt/android-ndk-tmp
           cd /opt/android-ndk-tmp
-          wget -q https://dl.google.com/android/repository/android-ndk-r20-linux-x86_64.zip
-          unzip -q android-ndk-r20-linux-x86_64.zip
-          mv ./android-ndk-r20 /opt/android-ndk
+          # Use a modern NDK compatible with ubuntu-24.04 runner images
+          wget -q https://dl.google.com/android/repository/android-ndk-r27d-linux.zip
+          unzip -q android-ndk-r27d-linux.zip
+          mv ./android-ndk-r27d /opt/android-ndk
           cd /opt/android-ndk
           rm -rf /opt/android-ndk-tmp
           export PATH=$PATH:/opt/android-ndk
@@ -84,6 +81,9 @@ jobs:
 
       - name: build
         run: |
+          export ANDROID_NDK=/opt/android-ndk
+          export ANDROID_NDK_HOME=/opt/android-ndk
+          export ANDROID_NDK_ROOT=/opt/android-ndk
           cd td/example
           ./export.sh
 
@@ -241,7 +241,7 @@ jobs:
           artifacts: 'td/example/ios/tdjson/iOS/lib/libtdjson.zip'
 
   build-linux-x64:
-    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.target == 'linux' || github.event.inputs.target == 'all')) }}
+    if: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.target == 'linux' || github.event.inputs.target == 'all') }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v2
