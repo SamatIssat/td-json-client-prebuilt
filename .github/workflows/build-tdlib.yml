@@ -56,6 +56,8 @@ jobs:
         run: |
           cd td
           perl -0pi -e 's/\A/if (ANDROID)\n  set(ATOMICS_FOUND TRUE CACHE BOOL "Android toolchain provides atomics" FORCE)\n  set(ATOMICS_LIBRARIES "" CACHE STRING "Atomic library" FORCE)\n  return()\nendif()\n\n/' CMake/FindAtomics.cmake
+          # NDK r20 links via an older GNU ld that doesn't understand --icf=safe.
+          find . \( -name 'CMakeLists.txt' -o -name '*.cmake' \) -print0 | xargs -0 perl -0pi -e 's/\s*-Wl,--icf=safe//g'
 
       - name: setup td
         run: |
