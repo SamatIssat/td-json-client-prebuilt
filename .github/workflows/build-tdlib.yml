@@ -20,11 +20,13 @@ jobs:
   build-android:
     if: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.target == 'android' || github.event.inputs.target == 'all') }}
     runs-on: ubuntu-24.04
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
       - name: JSON to variables
-        uses: rgarcia-phi/json-to-variables@v1.1.0
+        uses: rgarcia-phi/json-to-variables@v1.2.1
         with:
           filename: '.github/workflows/td-version.json'
           prefix: td
@@ -52,6 +54,13 @@ jobs:
           cd td
           git checkout ${{ env.td_commit_hash }}
           git show --summary
+
+      - name: patch td atomics check (android)
+        run: |
+          cd td
+          # On ubuntu-24.04 images, CMake's atomics try-compile can false-negative with older Android toolchains.
+          # TDLib still uses std::atomic heavily; Android clang toolchains provide the needed builtins.
+          sed -i '1i\\\nif (ANDROID)\\\n  set(ATOMICS_FOUND TRUE CACHE BOOL \"Android toolchain provides atomics\" FORCE)\\\n  set(ATOMICS_LIBRARIES \"\" CACHE STRING \"Atomic library\" FORCE)\\\n  return()\\\nendif()\\\n' CMake/FindAtomics.cmake
 
       - name: setup td
         run: |
