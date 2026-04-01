@@ -1,12 +1,16 @@
 name: tdlib-build
 
 on:
+  push:
+    paths:
+      - '.github/workflows/td-version.json'
+      - '.github/workflows/build-tdlib.yml'
   workflow_dispatch:
     inputs:
       target:
         description: 'Which platform(s) to build'
         required: true
-        default: android
+        default: linux
         type: choice
         options:
           - linux
@@ -19,27 +23,24 @@ on:
 jobs:
   build-android:
     if: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.target == 'android' || github.event.inputs.target == 'all') }}
-    runs-on: ubuntu-24.04
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+    runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v2
 
-      - name: Read td-version.json
-        run: |
-          echo "td_version=$(jq -r .version .github/workflows/td-version.json)" >> "$GITHUB_ENV"
-          echo "td_commit_hash=$(jq -r .commit_hash .github/workflows/td-version.json)" >> "$GITHUB_ENV"
+      - name: JSON to variables
+        uses: rgarcia-phi/json-to-variables@v1.1.0
+        with:
+          filename: '.github/workflows/td-version.json'
+          prefix: td
 
       - name: setup
         run: |
-          sudo apt-get install -y make git zlib1g-dev libssl-dev gperf cmake clang libc++-dev libc++abi-dev ninja-build wget unzip zip curl ca-certificates jq
+          sudo apt-get install -y make git zlib1g-dev libssl-dev gperf cmake clang libc++-dev libc++abi-dev ninja-build
 
       - name: download ndk
         run: |
           mkdir /opt/android-ndk-tmp
           cd /opt/android-ndk-tmp
-          # This workflow uses OpenSSL_1_1_1g scripts that expect legacy NDK layout
-          # with `platforms/`, which is present in r20.
           wget -q https://dl.google.com/android/repository/android-ndk-r20-linux-x86_64.zip
           unzip -q android-ndk-r20-linux-x86_64.zip
           mv ./android-ndk-r20 /opt/android-ndk
@@ -69,13 +70,7 @@ jobs:
           chmod +x third_party/crypto/build-all.sh
           sed -i '3s/.*/set(TD_DIR ${CMAKE_CURRENT_SOURCE_DIR}\/..)/' CMakeLists.txt
           curl https://github.com/openssl/openssl/archive/refs/tags/OpenSSL_1_1_1g.tar.gz -o third_party/crypto/openssl-OpenSSL_1_1_1g.tar.gz -L
-          # Patch build.sh:
-          # - use NDK from /opt/android-ndk (not ANDROID_SDK_ROOT/ndk-bundle)
-          # - set API level explicitly (arm64/x86_64 require >= 21)
-          sed -i 's#${ANDROID_SDK_ROOT}/ndk-bundle/build/cmake/android.toolchain.cmake#/opt/android-ndk/build/cmake/android.toolchain.cmake#g' build.sh
-          sed -i '/^cd build-\\$ABI$/a\\\nAPI=16\\\nif [ \"$ABI\" = \"x86_64\" ] || [ \"$ABI\" = \"arm64-v8a\" ]; then API=21; fi\\\n' build.sh
-          # Work around CMake cross-compile atomics try-compile failure on ubuntu-24.04.
-          sed -i 's#^cmake \\.\\. -DCMAKE_TOOLCHAIN_FILE=.*#cmake .. -DCMAKE_TOOLCHAIN_FILE=/opt/android-ndk/build/cmake/android.toolchain.cmake -DANDROID_PLATFORM=android-$API -DATOMICS_FOUND=TRUE -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY -DCMAKE_BUILD_TYPE=MinSizeRel -GNinja -DANDROID_ABI=${ABI} || exit 1#' build.sh
+          sed -i '5s/.*/cmake .. -DCMAKE_TOOLCHAIN_FILE=\/opt\/android-ndk\/build\/cmake\/android.toolchain.cmake -DCMAKE_BUILD_TYPE=MinSizeRel -GNinja -DANDROID_ABI=${ABI} || exit 1/' build.sh
           sed -i '1s/.*/#!\/bin\/bash/' third_party/crypto/build.sh
           sed -i '21s/.*/HOST_ARCH=linux-x86_64/' third_party/crypto/build.sh
           sed -i '20s/.*/export ANDROID_NDK=\/opt\/android-ndk/' third_party/crypto/build.sh
@@ -89,9 +84,6 @@ jobs:
 
       - name: build
         run: |
-          export ANDROID_NDK=/opt/android-ndk
-          export ANDROID_NDK_HOME=/opt/android-ndk
-          export ANDROID_NDK_ROOT=/opt/android-ndk
           cd td/example
           ./export.sh
 
@@ -249,8 +241,8 @@ jobs:
           artifacts: 'td/example/ios/tdjson/iOS/lib/libtdjson.zip'
 
   build-linux-x64:
-    if: ${{ github.event_name == 'workflow_dispatch' && (github.event.inputs.target == 'linux' || github.event.inputs.target == 'all') }}
-    runs-on: ubuntu-24.04
+    if: ${{ github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.target == 'linux' || github.event.inputs.target == 'all')) }}
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v2
 
