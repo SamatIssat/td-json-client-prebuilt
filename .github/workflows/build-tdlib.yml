@@ -55,7 +55,7 @@ jobs:
       - name: patch td atomics check (android)
         run: |
           cd td
-          sed -i '1i\\\nif (ANDROID)\\\n  set(ATOMICS_FOUND TRUE CACHE BOOL "Android toolchain provides atomics" FORCE)\\\n  set(ATOMICS_LIBRARIES "" CACHE STRING "Atomic library" FORCE)\\\n  return()\\\nendif()\\\n' CMake/FindAtomics.cmake
+          perl -0pi -e 's/\A/if (ANDROID)\n  set(ATOMICS_FOUND TRUE CACHE BOOL "Android toolchain provides atomics" FORCE)\n  set(ATOMICS_LIBRARIES "" CACHE STRING "Atomic library" FORCE)\n  return()\nendif()\n\n/' CMake/FindAtomics.cmake
 
       - name: setup td
         run: |
